@@ -245,8 +245,8 @@ def read_cached_headers():
     """Read cached OTEL headers if they exist.
 
     User attributes (email, team, etc.) don't change between sessions,
-    so cached headers are served regardless of token expiry. Headers are
-    refreshed opportunistically when a valid token is available.
+    so cached headers are served regardless of token expiry — EXCEPT for
+    the Authorization header which must not be served if the token is expired.
     """
     try:
         cache_path = get_cache_path()
@@ -256,6 +256,10 @@ def read_cached_headers():
             cached = json.load(f)
         headers = cached.get("headers")
         if not headers:
+            return None
+        # If the token is expired, return None so the caller fetches a fresh token.
+        token_exp = cached.get("token_exp", 0)
+        if token_exp and token_exp < time.time():
             return None
         logger.debug("Using cached OTEL headers")
         return headers
@@ -752,6 +756,10 @@ def main():
 
         # Generate headers dictionary
         headers_dict = format_as_headers_dict(user_info)
+
+        # Add Authorization Bearer token for ALB JWT validation
+        if token:
+            headers_dict["authorization"] = f"Bearer {token}"
         # In test mode, print detailed output
         if TEST_MODE:
             print("===== TEST MODE OUTPUT =====\n")
