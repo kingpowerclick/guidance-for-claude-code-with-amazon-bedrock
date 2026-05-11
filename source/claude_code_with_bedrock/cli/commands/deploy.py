@@ -523,11 +523,13 @@ class DeployCommand(Command):
                             ]
                         )
                     elif profile.distribution_idp_provider == "cognito":
-                        # Split domain to get user pool ID and domain prefix
+                        # Strip full domain to get only the prefix
+                        # e.g. "my-domain.auth.us-east-1.amazoncognito.com" -> "my-domain"
+                        cognito_dist_domain = profile.distribution_idp_domain.split(".")[0]
                         params.extend(
                             [
                                 f"CognitoUserPoolId={profile.cognito_user_pool_id or ''}",
-                                f"CognitoUserPoolDomain={profile.distribution_idp_domain}",
+                                f"CognitoUserPoolDomain={cognito_dist_domain}",
                                 f"CognitoClientId={profile.distribution_idp_client_id}",
                                 f"CognitoClientSecretArn={profile.distribution_idp_client_secret_arn}",
                             ]
